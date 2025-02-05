@@ -13,7 +13,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 /**
- * Function to format URL properly (if missing http/https)
+ * Format URL properly (if missing http/https)
  */
 function formatURL(url) {
     if (!/^https?:\/\//i.test(url)) {
@@ -29,7 +29,7 @@ async function scrapeTextFromURL(url) {
     try {
         console.log(`Fetching and scraping text from URL: ${url}`);
 
-        // real browser with headers
+        // Real browser with headers
         const response = await axios.get(url, {
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36",
@@ -39,13 +39,13 @@ async function scrapeTextFromURL(url) {
 
         const { data, headers } = response;
 
-        //  content type
+        // Content type
         const contentType = headers["content-type"] || "Unknown";
 
         // HTML into Cheerio
         const $ = cheerio.load(data);
 
-        // text from the <article> or <body>
+        // Text from the <article> or <body>
         const text = $("article").text().trim() || $("body").text().trim();
 
         if (!text) {
@@ -63,61 +63,77 @@ async function scrapeTextFromURL(url) {
 }
 
 /**
- * Route to analyze text from a URL
+ * Route to analyze text from a URL or plain text
  */
-app.post("/analyze-url", async (req, res) => {
-    const { url } = req.body;
+app.post("/analyze", async (req, res) => {
+    const { type, url, text } = req.body;
 
-    if (!url) {
-        console.error("No URL provided");
-        return res.status(400).json({ error: "URL is required" });
+    if (!type || (type !== "url" && type !== "text")) {
+        console.error("Invalid type provided");
+        return res.status(400).json({ error: "Type must be either 'url' or 'text'" });
     }
 
     try {
-        // Scrape text and extract content type
-        const { text, contentType } = await scrapeTextFromURL(url);
+        let content = null;
+        let contentType = "text/plain";
 
-        if (!text) {
-            return res.status(400).json({ error: "No text found at URL" });
+        if (type === "url") {
+            if (!url) {
+                console.error("No URL provided");
+                return res.status(400).json({ error: "URL is required" });
+            }
+            const result = await scrapeTextFromURL(url);
+            content = result.text;
+            contentType = result.contentType;
+        } else if (type === "text") {
+            if (!text) {
+                console.error("No text provided");
+                return res.status(400).json({ error: "Text is required" });
+            }
+            content = text.slice(0, 200); // Trim text to 200 characters
+        }
+
+        if (!content) {
+            return res.status(400).json({ error: "No content found" });
         }
 
         // NLP API Request
         const NLP_API_URL = "https://kooye7u703.execute-api.us-east-1.amazonaws.com/NLPAnalyzer";
         const response = await axios.post(
             NLP_API_URL,
-            { text },
+            { text: content },
             { headers: { "Content-Type": "application/json" } }
         );
 
-        //  full response from NLP API
+        // Full response from NLP API
         console.log("NLP API Full Response:", response.data);
 
-        //  sentiment & subjectivity
+        // Sentiment & subjectivity
         const sentiment = response.data.sentiment || "Unknown";
         let subjectivity = response.data.subjectivity || response.data.polarity || "Unknown";
 
-        //  missing subjectivity 
+        // Handle missing subjectivity
         if (!response.data.subjectivity && !response.data.polarity) {
             subjectivity = response.data.sentiment_scores
                 ? determineSubjectivity(response.data.sentiment_scores)
                 : "Unknown";
         }
 
-        // processed results
+        // Processed results
         return res.json({
             sentiment,
             subjectivity,
             contentType,
-            preview: text,
+            preview: content,
         });
     } catch (error) {
         console.error("Error during processing:", error.response ? error.response.data : error.message);
-        return res.status(500).json({ error: "Failed to analyze the URL" });
+        return res.status(500).json({ error: "Failed to analyze the input" });
     }
 });
 
 /**
- *  subjectivity if missing
+ * Determine subjectivity if missing
  */
 function determineSubjectivity(sentimentScores) {
     if (!sentimentScores) return "Unknown";
@@ -130,11 +146,9 @@ function determineSubjectivity(sentimentScores) {
     return "Unknown";
 }
 
-
 app.get("/", (req, res) => {
     res.send("This is the server API page. You may access its services via the client app.");
 });
-
 
 app.get("/test", (req, res) => {
     res.json({ message: "Server is running!" });

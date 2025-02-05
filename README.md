@@ -1,28 +1,39 @@
 Overview
-
-This project analyzes the sentiment of news articles using an NLP API. Built with Node.js, Express, Webpack, and Sass, it demonstrates essential web development skills, including API integration, service workers, and responsive design.
+This project analyzes the sentiment of website URLs or user-entered plain text using an NLP API. Built with Node.js, Express, Webpack, and Sass, it demonstrates essential web development skills, including API integration, service workers, and responsive design. Users can input either a URL to scrape and analyze text from a webpage or directly enter text for sentiment analysis.
 
 Features
+Webpack setup with loaders and plugins for efficient development and production builds.
 
-Webpack setup with loaders and plugins
+API integration for sentiment analysis using an external NLP API.
 
-API integration for sentiment analysis
+Dynamic UI updates based on analysis results, displaying sentiment, subjectivity, and a preview of the analyzed content.
 
-Dynamic UI updates based on analysis results
+Support for both URL and plain text input:
 
-Service worker for offline functionality
+URL Input: Scrapes text from the provided webpage and analyzes it.
 
-Jest testing for validation
+Plain Text Input: Directly analyzes the text entered by the user.
+
+Service worker for offline functionality and improved performance.
+
+Jest testing for validation and ensuring code reliability.
 
 Setup
-
 Install dependencies:
 
 npm install
+Run the project:
 
-Run:
+For the front-end:
+npm run build-dev
 
-npm run build-dev | for the front-end
-npm start | for the back-end server
+For the back-end server:
 
-Developer "Built by Omar Sanjaq
+npm start
+
+Open the application in your browser and:
+Enter a website URL to analyze text from a webpage.
+Or, enter plain text directly for sentiment analysis.
+
+Developer
+Built by Omar Sanjaq
